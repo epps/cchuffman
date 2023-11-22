@@ -7,7 +7,7 @@ This repo is my solution to John Crickett's [Coding Challenge #3 - Write Your Co
 ## Steps
 
 - [x] Step 0: Project setup and download test text (_Les Misérables_, by Victor Hugo from Project Gutenberg)
-- [ ] Step 1: Program should accept a filename and produce a frequency count of all characters in the file
+- [x] Step 1: Program should accept a filename and produce a frequency count of all characters in the file
 - [ ] Step 2: Build a binary tree from the frequencies calculated in Step #1
 - [ ] Step 3: Build a prefix-free table using the binary tree from Step #2
 - [ ] Step 4: Write the header section of the output file
