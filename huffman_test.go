@@ -7,50 +7,50 @@ import (
 
 func TestFrequencyTable(t *testing.T) {
 	type testCase struct {
-		char          string
-		expectedCount int
+		char         string
+		expectedFreq int
 	}
 
 	tests := []testCase{
 		{
-			char:          "a",
-			expectedCount: 10,
+			char:         "a",
+			expectedFreq: 10,
 		},
 		{
-			char:          "b",
-			expectedCount: 9,
+			char:         "b",
+			expectedFreq: 9,
 		},
 		{
-			char:          "c",
-			expectedCount: 8,
+			char:         "c",
+			expectedFreq: 8,
 		},
 		{
-			char:          "ę",
-			expectedCount: 6,
+			char:         "ę",
+			expectedFreq: 6,
 		},
 		{
-			char:          "i",
-			expectedCount: 2,
+			char:         "i",
+			expectedFreq: 2,
 		},
 		{
-			char:          "Ü",
-			expectedCount: 6,
+			char:         "Ü",
+			expectedFreq: 6,
 		},
 		{
-			char:          "Š",
-			expectedCount: 4,
+			char:         "Š",
+			expectedFreq: 4,
 		},
 		{
-			char:          "Z",
-			expectedCount: 11,
+			char:         "Z",
+			expectedFreq: 11,
 		},
 		{
-			char:          "k",
-			expectedCount: 0,
+			char:         "k",
+			expectedFreq: 0,
 		},
 		{
-			char:          "m",
-			expectedCount: 0,
+			char:         "m",
+			expectedFreq: 0,
 		},
 	}
 
@@ -65,9 +65,44 @@ func TestFrequencyTable(t *testing.T) {
 			r, _ := utf8.DecodeRuneInString(tt.char)
 			actualCount := ft.Get(r)
 
-			if actualCount != tt.expectedCount {
-				t.Fatalf("expected count for %s to be %d, but received %d", tt.char, tt.expectedCount, actualCount)
+			if actualCount != tt.expectedFreq {
+				t.Fatalf("expected count for %s to be %d, but received %d", tt.char, tt.expectedFreq, actualCount)
 			}
+		})
+	}
+}
+
+func TestPriorityQueue(t *testing.T) {
+	type testCase struct {
+		char         string
+		expectedFreq int
+	}
+
+	tests := []testCase{
+		{
+			char:         "P",
+			expectedFreq: 1,
+		},
+	}
+
+	ft := NewFrequencyTable("frequency-test.txt")
+
+	if err := ft.Populate(); err != nil {
+		t.Fatalf("failed to populate table: %v", err)
+	}
+
+	nodes := ft.ToList()
+
+	pq := NewPriorityQueue(nodes)
+
+	for _, tt := range tests {
+		t.Run(tt.char, func(t *testing.T) {
+			min := pq.Pop()
+
+			if min.freq != tt.expectedFreq {
+				t.Fatalf("Expected %s to have frequency %d but received %q with frequency %d", tt.char, tt.expectedFreq, min.char, min.freq)
+			}
+
 		})
 	}
 }
