@@ -73,18 +73,6 @@ func TestFrequencyTable(t *testing.T) {
 }
 
 func TestPriorityQueue(t *testing.T) {
-	type testCase struct {
-		char         string
-		expectedFreq int
-	}
-
-	tests := []testCase{
-		{
-			char:         "P",
-			expectedFreq: 1,
-		},
-	}
-
 	ft := NewFrequencyTable("frequency-test.txt")
 
 	if err := ft.Populate(); err != nil {
@@ -95,14 +83,21 @@ func TestPriorityQueue(t *testing.T) {
 
 	pq := NewPriorityQueue(nodes)
 
-	for _, tt := range tests {
-		t.Run(tt.char, func(t *testing.T) {
-			min := pq.Pop()
+	previousNode := pq.Pop()
+	counter := 0
+	var currentNode *FrequencyNode
+	for {
+		currentNode = pq.Pop()
+		counter += 1
 
-			if min.freq != tt.expectedFreq {
-				t.Fatalf("Expected %s to have frequency %d but received %q with frequency %d", tt.char, tt.expectedFreq, min.char, min.freq)
-			}
+		if currentNode == nil {
+			break
+		}
 
-		})
+		if currentNode.freq < previousNode.freq || (currentNode.freq == previousNode.freq && currentNode.char < previousNode.char) {
+			t.Fatalf("expected %q to have a higher frequency than %q", currentNode.char, previousNode.char)
+		}
+
+		previousNode = currentNode
 	}
 }

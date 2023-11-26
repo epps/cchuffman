@@ -22,3 +22,7 @@ go.work
 
 # Test file
 les-mis.txt
+
+# Graphviz files and images
+*.dot
+*.png
