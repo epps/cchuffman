@@ -315,13 +315,13 @@ func (hf *HuffmanTree) Log(filename string) error {
 			if node.left != nil {
 				queue = append(queue, node.left)
 				left := *node.left
-				connections += fmt.Sprintf(` node_%d_%d -- node_%d_%d;`, node.freq, node.char, left.freq, left.char)
+				connections += fmt.Sprintf(` node_%d_%d -- node_%d_%d[label="%d"];`, node.freq, node.char, left.freq, left.char, 0)
 			}
 
 			if node.right != nil {
 				queue = append(queue, node.right)
 				right := *node.right
-				connections += fmt.Sprintf(` node_%d_%d -- node_%d_%d;`, node.freq, node.char, right.freq, right.char)
+				connections += fmt.Sprintf(` node_%d_%d -- node_%d_%d[label="%d"];`, node.freq, node.char, right.freq, right.char, 1)
 			}
 		}
 	}
@@ -336,21 +336,21 @@ func (hf *HuffmanTree) Log(filename string) error {
 	return nil
 }
 
-func (hf *HuffmanTree) TraverseInOrder() []*FrequencyNode {
-	nodes := make([]*FrequencyNode, 0)
+func (hf *HuffmanTree) ToLookupTable() map[rune]string {
+	table := make(map[rune]string)
 
-	var traverse func(n *FrequencyNode)
-	traverse = func(n *FrequencyNode) {
+	var traverse func(n *FrequencyNode, code string)
+	traverse = func(n *FrequencyNode, code string) {
 		if n == nil {
 			return
 		}
 
-		traverse(n.left)
-		nodes = append(nodes, n)
-		traverse(n.right)
+		traverse(n.left, code+"0")
+		table[n.char] = code
+		traverse(n.right, code+"1")
 	}
 
-	traverse(hf.root)
+	traverse(hf.root, "")
 
-	return nodes
+	return table
 }
