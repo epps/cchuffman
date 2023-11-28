@@ -63,13 +63,6 @@ func (ft *FrequencyTable) Get(r rune) int {
 	return ft.table[r]
 }
 
-type FrequencyNode struct {
-	char  rune
-	freq  int
-	left  *FrequencyNode
-	right *FrequencyNode
-}
-
 func (ft *FrequencyTable) ToList() []*FrequencyNode {
 	list := make([]*FrequencyNode, 0)
 
@@ -78,6 +71,17 @@ func (ft *FrequencyTable) ToList() []*FrequencyNode {
 	}
 
 	return list
+}
+
+type FrequencyNode struct {
+	char  rune
+	freq  int
+	left  *FrequencyNode
+	right *FrequencyNode
+}
+
+func (fn *FrequencyNode) IsLeaf() bool {
+	return fn.left == nil && fn.right == nil
 }
 
 func NewPriorityQueue(list []*FrequencyNode) *PriorityQueue {
@@ -245,4 +249,108 @@ func (pq *PriorityQueue) Log(filename string) error {
 
 	f.Sync()
 	return nil
+}
+
+func (pq *PriorityQueue) ToBinaryTree() *FrequencyNode {
+	var root *FrequencyNode
+
+	for {
+		if len(pq.nodes) == 1 {
+			root = pq.nodes[0]
+			break
+		}
+
+		a := pq.Pop()
+		b := pq.Pop()
+		c := &FrequencyNode{
+			freq:  a.freq + b.freq,
+			left:  a,
+			right: b,
+		}
+
+		pq.Insert(c)
+	}
+
+	return root
+}
+
+func NewHuffmanTree(root *FrequencyNode) *HuffmanTree {
+	return &HuffmanTree{
+		root: root,
+	}
+}
+
+type HuffmanTree struct {
+	root *FrequencyNode
+}
+
+func (hf *HuffmanTree) Log(filename string) error {
+	if _, err := os.Stat("graphviz"); os.IsNotExist(err) {
+		if err := os.Mkdir("graphviz", 0755); err != nil {
+			return err
+		}
+	}
+	f, err := os.Create(fmt.Sprintf("graphviz/%s.dot", filename))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	queue := []*FrequencyNode{hf.root}
+
+	definitions := ""
+	connections := ""
+	for {
+		if len(queue) == 0 {
+			break
+		}
+
+		node := queue[0]
+		queue = queue[1:]
+
+		if node.IsLeaf() {
+			definitions += fmt.Sprintf(` node_%d_%d[label="char: %q\nrune: %d\nfreq: %d"];`, node.freq, node.char, node.char, node.char, node.freq)
+		} else {
+			definitions += fmt.Sprintf(` node_%d_%d[label="weight %d"];`, node.freq, node.char, node.freq)
+			if node.left != nil {
+				queue = append(queue, node.left)
+				left := *node.left
+				connections += fmt.Sprintf(` node_%d_%d -- node_%d_%d;`, node.freq, node.char, left.freq, left.char)
+			}
+
+			if node.right != nil {
+				queue = append(queue, node.right)
+				right := *node.right
+				connections += fmt.Sprintf(` node_%d_%d -- node_%d_%d;`, node.freq, node.char, right.freq, right.char)
+			}
+		}
+	}
+
+	f.WriteString(fmt.Sprintf(`graph {
+		%s
+		%s
+	}`, definitions, connections))
+
+	f.Sync()
+
+	return nil
+}
+
+func (hf *HuffmanTree) TraverseInOrder() []*FrequencyNode {
+	nodes := make([]*FrequencyNode, 0)
+
+	var traverse func(n *FrequencyNode)
+	traverse = func(n *FrequencyNode) {
+		if n == nil {
+			return
+		}
+
+		traverse(n.left)
+		nodes = append(nodes, n)
+		traverse(n.right)
+	}
+
+	traverse(hf.root)
+
+	return nodes
 }

@@ -101,3 +101,64 @@ func TestPriorityQueue(t *testing.T) {
 		previousNode = currentNode
 	}
 }
+
+func TestBinaryTree(t *testing.T) {
+	// See https://opendsa-server.cs.vt.edu/ODSA/Books/CS3/html/Huffman.html#freqexamp
+	// for test tree walkthrough and structure
+	nodes := []*FrequencyNode{
+		{
+			char: 67, // C
+			freq: 32,
+		},
+		{
+			char: 68, // D
+			freq: 42,
+		},
+		{
+			char: 69, // E
+			freq: 120,
+		},
+		{
+			char: 75, // K
+			freq: 7,
+		},
+		{
+			char: 76, // L
+			freq: 42,
+		},
+		{
+			char: 77, // M
+			freq: 24,
+		},
+		{
+			char: 85, // U
+			freq: 37,
+		},
+		{
+			char: 90, // Z
+			freq: 2,
+		},
+	}
+
+	pq := NewPriorityQueue(nodes)
+
+	tree := NewHuffmanTree(pq.ToBinaryTree())
+
+	inOrderNodes := tree.TraverseInOrder()
+
+	first := *inOrderNodes[0]
+	second := *inOrderNodes[1]
+	last := *inOrderNodes[len(inOrderNodes)-1]
+
+	if first.char != 69 && first.freq != 120 && first.IsLeaf() {
+		t.Fatalf("Expected leaf node with char 69 ('E') with frequency 120, but received char %q with frequency %d", first.char, first.freq)
+	}
+
+	if second.char != 0 && second.freq != 306 && !second.IsLeaf() {
+		t.Fatalf("Expected internal node with char 0 with frequency 306, but received char %q with frequency %d", second.char, second.freq)
+	}
+
+	if last.char != 77 && last.freq != 24 && last.IsLeaf() {
+		t.Fatalf("Expected leaf node char 77 ('M') with frequency 24, but received char %q with frequency %d", last.char, last.freq)
+	}
+}
