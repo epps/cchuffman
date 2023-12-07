@@ -273,3 +273,54 @@ func TestLookupTable(t *testing.T) {
 	}
 
 }
+
+func TestToHeader(t *testing.T) {
+	// See https://opendsa-server.cs.vt.edu/ODSA/Books/CS3/html/Huffman.html#freqexamp
+	// for test tree walkthrough and structure
+	nodes := []*FrequencyNode{
+		{
+			char: 67, // C
+			freq: 32,
+		},
+		{
+			char: 68, // D
+			freq: 42,
+		},
+		{
+			char: 69, // E
+			freq: 120,
+		},
+		{
+			char: 75, // K
+			freq: 7,
+		},
+		{
+			char: 76, // L
+			freq: 42,
+		},
+		{
+			char: 77, // M
+			freq: 24,
+		},
+		{
+			char: 85, // U
+			freq: 37,
+		},
+		{
+			char: 90, // Z
+			freq: 2,
+		},
+	}
+
+	pq := NewPriorityQueue(nodes)
+
+	tree := NewHuffmanTree(pq.ToBinaryTree())
+
+	header := tree.ToHeader()
+
+	expected := "01E001U1D01L01C001Z1K1M⁂"
+
+	if string(header) != expected {
+		t.Fatalf("Expected header to be %s, but received %s", expected, header)
+	}
+}

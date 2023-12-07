@@ -345,6 +345,7 @@ func (hf *HuffmanTree) ToLookupTable() map[rune]string {
 			return
 		}
 
+		// In-order traversal
 		traverse(n.left, code+"0")
 		table[n.char] = code
 		traverse(n.right, code+"1")
@@ -353,4 +354,35 @@ func (hf *HuffmanTree) ToLookupTable() map[rune]string {
 	traverse(hf.root, "")
 
 	return table
+}
+
+func (hf *HuffmanTree) ToHeader() []byte {
+	header := make([]rune, 0)
+
+	var traverse func(n *FrequencyNode)
+	traverse = func(n *FrequencyNode) {
+		if n == nil {
+			return
+		}
+
+		// Pre-order traversal
+		if n.IsLeaf() {
+			header = append(header, rune('1'))
+			header = append(header, n.char)
+		} else {
+			header = append(header, rune('0'))
+		}
+		traverse(n.left)
+		traverse(n.right)
+	}
+
+	traverse(hf.root)
+
+	var controlChar rune = '⁂'
+
+	header = append(header, controlChar)
+
+	headerStr := string(header)
+
+	return []byte(headerStr)
 }
