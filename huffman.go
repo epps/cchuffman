@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 )
+
+const CONTROL_CHAR rune = '⁂'
 
 type FrequencyNode struct {
 	char  rune
@@ -99,7 +102,8 @@ func (hf *HuffmanTree) ToLookupTable() map[rune]string {
 }
 
 func (hf *HuffmanTree) ToHeader() []byte {
-	header := make([]rune, 0)
+	header := new(bytes.Buffer)
+	bitWriter := NewBitWriter(header)
 
 	var traverse func(n *FrequencyNode)
 	traverse = func(n *FrequencyNode) {
@@ -109,10 +113,10 @@ func (hf *HuffmanTree) ToHeader() []byte {
 
 		// Pre-order traversal
 		if n.IsLeaf() {
-			header = append(header, rune('1'))
-			header = append(header, n.char)
+			bitWriter.WriteBit(One)
+			bitWriter.WriteRune(n.char)
 		} else {
-			header = append(header, rune('0'))
+			bitWriter.WriteBit(Zero)
 		}
 		traverse(n.left)
 		traverse(n.right)
@@ -120,11 +124,9 @@ func (hf *HuffmanTree) ToHeader() []byte {
 
 	traverse(hf.root)
 
-	var controlChar rune = '⁂'
+	bitWriter.Flush(One)
 
-	header = append(header, controlChar)
+	bitWriter.WriteRune(CONTROL_CHAR)
 
-	headerStr := string(header)
-
-	return []byte(headerStr)
+	return header.Bytes()
 }

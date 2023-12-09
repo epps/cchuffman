@@ -57,7 +57,7 @@ func TestFrequencyTable(t *testing.T) {
 	ft := NewFrequencyTable("frequency-test.txt")
 
 	if err := ft.Populate(); err != nil {
-		t.Fatalf("failed to populate table: %v", err)
+		t.Errorf("failed to populate table: %v", err)
 	}
 
 	for _, tt := range tests {
@@ -66,7 +66,7 @@ func TestFrequencyTable(t *testing.T) {
 			actualCount := ft.Get(r)
 
 			if actualCount != tt.expectedFreq {
-				t.Fatalf("expected count for %s to be %d, but received %d", tt.char, tt.expectedFreq, actualCount)
+				t.Errorf("expected count for %s to be %d, but received %d", tt.char, tt.expectedFreq, actualCount)
 			}
 		})
 	}
