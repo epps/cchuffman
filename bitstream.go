@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"unicode/utf8"
@@ -13,7 +14,7 @@ import (
 // Given my gross ignorance of hands-on bit manipulation, I searched for a Go package
 // that would teach me what these items might look like in code. I stumbled upon
 // [go-bitstream](https://github.com/dgryski/go-bitstream), which was both small and
-// easy for me to read and digest. The below code is essentially a plargiarism of go-bitstream
+// easy for me to read and digest. The below code is essentially a plagiarism of go-bitstream
 // for the purpose of learning and completing this coding challenge
 
 type Bit bool
@@ -97,6 +98,109 @@ func (bw *BitWriter) WriteRune(char rune) error {
 func (bw *BitWriter) Flush(bit Bit) error {
 	for bw.alignment != 8 {
 		if err := bw.WriteBit(bit); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type BitReader struct {
+	reader    io.Reader
+	alignment uint8
+	buffer    [1]byte
+}
+
+func NewBitReader(r io.Reader) *BitReader {
+	return &BitReader{
+		reader:    r,
+		alignment: 0,
+		buffer:    [1]byte{},
+	}
+}
+
+func (br *BitReader) ReadBit() (Bit, error) {
+	// if buffer is complete, push the byte to the reader and reset
+	if br.alignment == 0 {
+		if n, err := br.reader.Read(br.buffer[:]); n != 1 || err != nil {
+			return Zero, err
+		}
+		br.alignment = 8
+	}
+	br.alignment -= 1
+	// bitwise AND extracts the most significant bit from the buffer because
+	// 0x80 in binary is 1000 0000, which means the result will either be
+	// 0x80 in the case the buffer's MSB is also 1 or 0 in the case it's not
+	bit := (br.buffer[0] & 0x80)
+	// left shift compound assignment operator left shift the buffer by one
+	// after the read and assigns the result back to the buffer for the next
+	// read operation
+	br.buffer[0] <<= 1
+	return bit != 0, nil
+}
+
+func (br *BitReader) ReadRune() (rune, error) {
+	// runes can be multiple bytes, so keeping a buffer external to
+	// the reader's buffer, which is just 1 byte, is necessary to handle
+	// multi-byte runes (e.g. the header's control character '⁂', which is
+	// 3 bytes)
+	rBuff := bytes.Buffer{}
+	for {
+		// If the buffer exceeds a logical maximum, then something has errored
+		// and we should break to avoid an infinite loop.
+		// TODO: understand the difference/implications of using this over
+		// utf8.MaxRune
+		if rBuff.Len() > utf8.UTFMax {
+			return 0, fmt.Errorf("failed to read complete rune; rune exceeds max UTF")
+		}
+		// Given the logic of ReadRune should only ever operate at the level of 1 byte
+		// per iteration, either DecodeRune will return a value rune after 1 or more
+		// iterations or it should error
+		r, size := utf8.DecodeRune(rBuff.Bytes())
+		if r != utf8.RuneError && size != 0 {
+			return r, nil
+		}
+		// Alignment is zero with the reader's buffer has a complete byte to operate
+		// on; reading 1 or more complete bytes will not change the alignment so no
+		// resetting/decrementing happens
+		if br.alignment == 0 {
+			n, err := br.reader.Read(br.buffer[:])
+			if n != 1 || (err != nil && err != io.EOF) {
+				br.buffer[0] = 0
+				return rune(br.buffer[0]), err
+			}
+			// TODO: handle this case
+			if err == io.EOF {
+				err = nil
+			}
+			if n, err := rBuff.Write(br.buffer[:]); n != 1 || err != nil {
+				return 0, err
+			}
+		} else {
+			// If the alignment is not zero, the buffer contains 1 or more bits that need to be
+			// saved before reading another byte into the reader's buffer
+			currentBuf := br.buffer[0]
+
+			if n, err := br.reader.Read(br.buffer[:]); n != 1 || (err != nil && err != io.EOF) {
+				return 0, err
+			}
+			// Right shifting the newly filled reader buffer by the alignment and assigning the result
+			// to the buffer that saved the partial bits to complete the byte
+			currentBuf |= br.buffer[0] >> br.alignment
+
+			// Left shifting by the difference between 8 (i.e. an alignment that points to the MSB) and
+			// the current alignment to prepare the reader for the next read operation
+			br.buffer[0] <<= (8 - br.alignment)
+
+			if err := rBuff.WriteByte(currentBuf); err != nil {
+				return 0, err
+			}
+		}
+	}
+}
+
+func (br *BitReader) Flush() error {
+	for br.alignment != 8 {
+		if _, err := br.ReadBit(); err != nil {
 			return err
 		}
 	}
