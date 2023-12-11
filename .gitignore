@@ -20,8 +20,9 @@
 # Go workspace file
 go.work
 
-# Test file
+# Test files
 les-mis.txt
+compressed.txt
 
 # Graphviz files and images
 *.dot

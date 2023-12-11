@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -218,7 +219,9 @@ func TestToHeader(t *testing.T) {
 
 	tree := NewHuffmanTree(pq.ToBinaryTree())
 
-	header := tree.ToHeader()
+	header := bytes.Buffer{}
+
+	tree.WriteHeader(&header)
 
 	// The string representation of the pre-order traversal of the tree should
 	// look like this: "01E001U1D01L01C001Z1K1M⁂"
@@ -230,7 +233,7 @@ func TestToHeader(t *testing.T) {
 	// 1 final bit (1) to account for 2 bytes
 	// This makes a total of 13 bytes
 
-	if len(header) != 13 {
-		t.Errorf("Expected header to be 13 bytes long, but received %d bytes", len(header))
+	if header.Len() != 13 {
+		t.Errorf("Expected header to be 13 bytes long, but received %d bytes", header.Len())
 	}
 }

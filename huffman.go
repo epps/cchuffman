@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -101,9 +101,8 @@ func (hf *HuffmanTree) ToLookupTable() map[rune]string {
 	return table
 }
 
-func (hf *HuffmanTree) ToHeader() []byte {
-	header := new(bytes.Buffer)
-	bitWriter := NewBitWriter(header)
+func (hf *HuffmanTree) WriteHeader(w io.Writer) {
+	bitWriter := NewBitWriter(w)
 
 	var traverse func(n *FrequencyNode)
 	traverse = func(n *FrequencyNode) {
@@ -124,9 +123,7 @@ func (hf *HuffmanTree) ToHeader() []byte {
 
 	traverse(hf.root)
 
-	bitWriter.Flush(One)
-
 	bitWriter.WriteRune(CONTROL_CHAR)
 
-	return header.Bytes()
+	bitWriter.Flush(One)
 }
