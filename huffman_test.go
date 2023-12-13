@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"io"
+	"os"
+	"reflect"
 	"testing"
 )
 
@@ -177,7 +180,7 @@ func TestLookupTable(t *testing.T) {
 
 }
 
-func TestToHeader(t *testing.T) {
+func TestHeader(t *testing.T) {
 	// See https://opendsa-server.cs.vt.edu/ODSA/Books/CS3/html/Huffman.html#freqexamp
 	// for test tree walkthrough and structure
 	nodes := []*FrequencyNode{
@@ -217,11 +220,13 @@ func TestToHeader(t *testing.T) {
 
 	pq := NewPriorityQueue(nodes)
 
-	tree := NewHuffmanTree(pq.ToBinaryTree())
+	inputTree := NewHuffmanTree(pq.ToBinaryTree())
 
 	header := bytes.Buffer{}
 
-	tree.WriteHeader(&header)
+	bitWriter := NewBitWriter(&header)
+
+	inputTree.WriteHeader(bitWriter)
 
 	// The string representation of the pre-order traversal of the tree should
 	// look like this: "01E001U1D01L01C001Z1K1M⁂"
@@ -235,5 +240,49 @@ func TestToHeader(t *testing.T) {
 
 	if header.Len() != 13 {
 		t.Errorf("Expected header to be 13 bytes long, but received %d bytes", header.Len())
+	}
+
+	f, err := os.Create("input.txt")
+	if err != nil {
+		t.Error(err)
+	}
+	f.Write(header.Bytes())
+	f.Close()
+
+	inputFile, err := os.Open("input.txt")
+	if err != nil {
+		t.Error(err)
+	}
+	defer inputFile.Close()
+
+	bitReader := NewBitReader(inputFile)
+
+	outputTree := &HuffmanTree{}
+
+	outputTree.ReadHeader(bitReader)
+	if err != nil {
+		t.Error(err)
+	}
+
+	r, err := bitReader.ReadRune()
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = bitReader.Flush()
+	if err != nil && err != io.EOF {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(inputTree.ToLookupTable(), outputTree.ToLookupTable()) {
+		t.Error("expected input lookup table to equal output lookup table", inputTree.ToLookupTable(), outputTree.ToLookupTable())
+	}
+
+	if r != rune('⁂') {
+		t.Errorf("expected header control character (⁂) but received %q instead", r)
+	}
+
+	if err != io.EOF {
+		t.Errorf("expected EOF error but received %v instead", err)
 	}
 }

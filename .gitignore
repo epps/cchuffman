@@ -20,9 +20,13 @@
 # Go workspace file
 go.work
 
+# Executable
+cchuffman
+
 # Test files
 les-mis.txt
-compressed.txt
+input.txt
+output.txt
 
 # Graphviz files and images
 *.dot
