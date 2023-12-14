@@ -206,3 +206,8 @@ func (br *BitReader) Flush() error {
 	}
 	return nil
 }
+
+func (br *BitReader) Reset() {
+	br.alignment = 0
+	br.buffer[0] = 0
+}

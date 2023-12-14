@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"unicode/utf8"
@@ -94,7 +95,11 @@ func (hf *HuffmanTree) ToLookupTable() map[rune]string {
 		}
 
 		// Pre-order traversal
-		table[n.char] = code
+		// Ensure no non-character frequency nodes are written
+		// to the lookup table
+		if n.char != 0 {
+			table[n.char] = code
+		}
 		traverse(n.left, code+"0")
 		traverse(n.right, code+"1")
 	}
@@ -263,6 +268,101 @@ func (e *HuffmanEncoder) Encode() error {
 	if err != nil {
 		return err
 	}
+	outputInfo, err := outputFile.Stat()
+	if err != nil {
+		return err
+	}
+
+	inputSizeMB := inputInfo.Size() / BITS_IN_BYTE
+	outputSizeMB := outputInfo.Size() / BITS_IN_BYTE
+
+	log.Printf("Input %s (%d KB) successfully written to %s (%d KB)", inputInfo.Name(), inputSizeMB, outputInfo.Name(), outputSizeMB)
+
+	return nil
+}
+
+type HuffmanDecoder struct {
+	input  string
+	output string
+}
+
+func NewHuffmanDecoder(input, output string) *HuffmanDecoder {
+	return &HuffmanDecoder{
+		input:  input,
+		output: output,
+	}
+}
+
+func (d *HuffmanDecoder) Decode() error {
+	inputFile, err := os.Open(d.input)
+	if err != nil {
+		return err
+	}
+	defer inputFile.Close()
+
+	bitReader := NewBitReader(inputFile)
+
+	tree := &HuffmanTree{}
+
+	if err = tree.ReadHeader(bitReader); err != nil {
+		return err
+	}
+
+	r, err := bitReader.ReadRune()
+	if err != nil {
+		return err
+	}
+	if r != rune('⁂') {
+		return fmt.Errorf("expected header control character (⁂) but received %q instead", r)
+	}
+
+	// Resetting here clears any padded bits following the header control
+	// character, which ensures reading compressed file begins at the correct
+	// location
+	bitReader.Reset()
+
+	encoderTable := tree.ToLookupTable()
+	decoderTable := make(map[string]rune)
+	for r, c := range encoderTable {
+		decoderTable[c] = r
+	}
+
+	code := ""
+
+	outputFile, err := os.Create(d.output)
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
+
+	writer := bufio.NewWriter(outputFile)
+
+	for {
+		bit, err := bitReader.ReadBit()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if bit == Zero {
+			code += "0"
+		} else {
+			code += "1"
+		}
+		if r, hasChar := decoderTable[code]; hasChar {
+			writer.WriteRune(r)
+			code = ""
+		}
+	}
+
+	writer.Flush()
+
+	inputInfo, err := inputFile.Stat()
+	if err != nil {
+		return err
+	}
+
 	outputInfo, err := outputFile.Stat()
 	if err != nil {
 		return err

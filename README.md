@@ -13,4 +13,4 @@ This repo is my solution to John Crickett's [Coding Challenge #3 - Write Your Co
 - [x] Step 4: Write the header section of the output file
 - [x] Step 5: Encode the file provided to the program using the prefix-free table and write it to the output file
 - [x] Step 6: Rebuild the prefix-free table from the output file's header section (reverse Step #4)
-- [ ] Step 7: Decode the output file using the prefix-free table (reverse Step #5)
+- [x] Step 7: Decode the output file using the prefix-free table (reverse Step #5)

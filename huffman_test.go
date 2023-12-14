@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/md5"
 	"io"
 	"os"
 	"reflect"
@@ -284,5 +285,46 @@ func TestHeader(t *testing.T) {
 
 	if err != io.EOF {
 		t.Errorf("expected EOF error but received %v instead", err)
+	}
+}
+
+func TestCompression(t *testing.T) {
+	input := "les-mis-test.txt"
+	output := "output.txt"
+	decompressed := "original.txt"
+	encoder := NewHuffmanEncoder(input, output)
+
+	if err := encoder.Encode(); err != nil {
+		t.Errorf("failed to compress %s: %v", input, err)
+	}
+
+	decoder := NewHuffmanDecoder(output, decompressed)
+
+	if err := decoder.Decode(); err != nil {
+		t.Errorf("failed to decompress %s: %v", output, err)
+	}
+
+	inputHash := md5.New()
+	inputFile, err := os.Open(input)
+	if err != nil {
+		t.Error(err)
+	}
+	defer inputFile.Close()
+	if _, err := io.Copy(inputHash, inputFile); err != nil {
+		t.Error(err)
+	}
+
+	decompressedHash := md5.New()
+	decompressedFile, err := os.Open(decompressed)
+	if err != nil {
+		t.Error(err)
+	}
+	defer decompressedFile.Close()
+	if _, err := io.Copy(decompressedHash, decompressedFile); err != nil {
+		t.Error(err)
+	}
+
+	if string(inputHash.Sum(nil)) != string(decompressedHash.Sum(nil)) {
+		t.Error("Expected decompressed to be identical to original file")
 	}
 }
